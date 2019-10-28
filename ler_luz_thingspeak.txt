@@ -5,7 +5,7 @@
  *  below. Or just customize this script to talk to other HTTP servers.
  *
  */
-
+#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <string.h>
 
@@ -45,8 +45,9 @@ void setup() {
 
 int value = 0;
 
+DynamicJsonBuffer jsonBuffer;
 void loop() {
-  delay(1000);
+  delay(100);
   ++value;
 
   Serial.print("connecting to ");
@@ -84,24 +85,16 @@ void loop() {
   }
   
   // Read all the lines of the reply from server and print them to Serial
-  String line = "";
   while(client.available()){
-    line += client.readStringUntil('\r');
+    String line = client.readStringUntil('\r');
+    JsonObject& root = jsonBuffer.parseObject(line);
+  
+    if (root.success()) {
+      String value = root["feeds"][0]["field1"];
+      digitalWrite(D1, value == "ON" ? HIGH : LOW);
+      Serial.println(value);
+    }
   }
-  Serial.println(line);
-  char content[line.length()];
-
-    for (int i = 0; i < line.length(); i++) {
-      content[i] = line[i];
-    }
-    
-    char search[] = "LED_ON";
-    char *ptr = strstr(content, search);
-    if (ptr != NULL) {
-      digitalWrite(D1, HIGH);
-    } else {
-      digitalWrite(D1, LOW);
-    }
   
   Serial.println();
   Serial.println("closing connection");
